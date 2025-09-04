@@ -1,19 +1,31 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+console.log('🔧 Supabase Config:', {
+  url: supabaseUrl ? '✅ URL configured' : '❌ URL missing',
+  key: supabaseAnonKey ? '✅ Key configured' : '❌ Key missing'
+});
 
-export const getCurrentUser = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
 
-  const { data: user } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', session.user.id)
-    .single();
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+});
 
-  return user;
-};
+// Test connection
+supabase.from('users').select('count', { count: 'exact', head: true })
+  .then(({ error }) => {
+    if (error) {
+      console.error('❌ Supabase connection test failed:', error);
+    } else {
+      console.log('✅ Supabase connection test successful');
+    }
+  });
